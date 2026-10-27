@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-const API = "http://localhost:5000/api";
+const API = "https://quickmart-api-b27r.onrender.com/api";
 
 const AdminDashboard = () => {
     const [orders, setOrders] = useState([]);
