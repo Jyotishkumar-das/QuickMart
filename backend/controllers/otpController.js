@@ -31,11 +31,33 @@ const sendOtp = async (req, res) => {
         }
 
         const cleanPhone = cleanPhoneNumber(phone);
+
+        // Demo mode must be explicitly enabled and restricted
+        // to one private test number configured on Render.
+        const demoMode = process.env.DEMO_OTP_MODE === "true";
+        const demoPhone = process.env.DEMO_OTP_PHONE;
+
+        if (demoMode && !demoPhone) {
+            console.error("Demo OTP mode requires DEMO_OTP_PHONE");
+
+            return res.status(500).json({
+                success: false,
+                message: "Demo OTP configuration is incomplete",
+            });
+        }
+
+        if (demoMode && cleanPhone !== demoPhone.trim()) {
+            return res.status(403).json({
+                success: false,
+                message: "Demo OTP is available only for the configured test number",
+            });
+        }
+
+        // Do not generate or store an OTP unless the request
+        // is permitted by the current demo configuration.
         const otp = generateOTP();
         const otpHash = await bcrypt.hash(otp, 10);
 
-        // Existing users and new customers can request OTP.
-        // Admin and delivery accounts must already exist.
         await OTP.deleteMany({ phone: cleanPhone });
 
         await OTP.create({
@@ -45,17 +67,24 @@ const sendOtp = async (req, res) => {
             attempts: 0,
         });
 
-        // Development only: OTP appears in backend terminal.
-        if (process.env.NODE_ENV !== "production") {
-            console.log(`Development OTP for ${cleanPhone}: ${otp}`);
+        // Never return the OTP in the API response.
+        // Log it only in restricted demo mode for the test number.
+        // Keep Render dashboard access private.
+        if (demoMode && cleanPhone === demoPhone.trim()) {
+            console.log(`[QUICKMART DEMO OTP] ${otp}`);
+        } else if (process.env.NODE_ENV !== "production") {
+            console.log(`[Development OTP] ${otp}`);
         }
 
         return res.status(200).json({
             success: true,
-            message: "OTP generated successfully. Please verify your OTP.",
+            message: demoMode
+                ? "Demo OTP generated. Check the private backend logs."
+                : "OTP generated successfully. Please verify your OTP.",
         });
     } catch (error) {
-        console.error("Send OTP Error:", error);
+        // Avoid logging request bodies, phone numbers, or OTPs.
+        console.error("Send OTP failed:", error.message);
 
         return res.status(500).json({
             success: false,
@@ -87,6 +116,18 @@ const verifyOtp = async (req, res) => {
         const cleanPhone = cleanPhoneNumber(phone);
         const cleanOtp = String(otp).trim();
 
+        // Restrict verification to the configured test number
+        // while demo mode is enabled.
+        const demoMode = process.env.DEMO_OTP_MODE === "true";
+        const demoPhone = process.env.DEMO_OTP_PHONE;
+
+        if (demoMode && (!demoPhone || cleanPhone !== demoPhone.trim())) {
+            return res.status(403).json({
+                success: false,
+                message: "Demo OTP is available only for the configured test number",
+            });
+        }
+
         const otpRecord = await OTP.findOne({
             phone: cleanPhone,
         }).sort({ createdAt: -1 });
@@ -116,10 +157,7 @@ const verifyOtp = async (req, res) => {
             });
         }
 
-        const isMatch = await bcrypt.compare(
-            cleanOtp,
-            otpRecord.otpHash
-        );
+        const isMatch = await bcrypt.compare(cleanOtp, otpRecord.otpHash);
 
         if (!isMatch) {
             otpRecord.attempts += 1;
@@ -141,14 +179,11 @@ const verifyOtp = async (req, res) => {
             });
         }
 
-        // Look up account only after successful OTP verification.
+        // Find an existing user or create a new customer.
         let user = await User.findOne({ phone: cleanPhone });
         let isNewCustomer = false;
 
         if (!user) {
-            // Create a customer account for a new verified number.
-            // A random password is used only for compatibility if the
-            // User model requires a password field.
             const randomPassword = crypto.randomBytes(32).toString("hex");
             const hashedPassword = await bcrypt.hash(randomPassword, 10);
 
@@ -172,8 +207,6 @@ const verifyOtp = async (req, res) => {
             });
         }
 
-        // Never silently convert an existing admin/delivery account
-        // into a customer account.
         const token = jwt.sign(
             {
                 userId: user._id.toString(),
@@ -183,6 +216,7 @@ const verifyOtp = async (req, res) => {
             { expiresIn: "7d" }
         );
 
+        // OTP is single-use.
         await OTP.deleteOne({ _id: otpRecord._id });
 
         return res.status(200).json({
@@ -200,10 +234,8 @@ const verifyOtp = async (req, res) => {
             },
         });
     } catch (error) {
-        console.error("Verify OTP Error:", error);
+        console.error("Verify OTP failed:", error.message);
 
-        // A duplicate phone number can occur if simultaneous requests
-        // try to create the same customer.
         if (error.code === 11000) {
             return res.status(409).json({
                 success: false,
@@ -214,9 +246,6 @@ const verifyOtp = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "OTP verification failed",
-            ...(process.env.NODE_ENV !== "production" && {
-                detail: error.message,
-            }),
         });
     }
 };
