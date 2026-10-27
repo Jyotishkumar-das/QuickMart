@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 
+const API_URL = "http://localhost:5000/api";
+
 const Cart = () => {
     const {
         cartItems,
@@ -16,6 +18,7 @@ const Cart = () => {
     const [showCheckout, setShowCheckout] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [paymentMethod, setPaymentMethod] = useState("COD");
 
     const [address, setAddress] = useState({
         name: "",
@@ -37,6 +40,24 @@ const Cart = () => {
             [name]: value,
         }));
     };
+
+    // Load Razorpay Checkout script
+    const loadRazorpay = () =>
+        new Promise((resolve) => {
+            if (window.Razorpay) {
+                resolve(true);
+                return;
+            }
+
+            const script = document.createElement("script");
+            script.src = "https://checkout.razorpay.com/v1/checkout.js";
+            script.async = true;
+
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+
+            document.body.appendChild(script);
+        });
 
     const placeOrder = async (e) => {
         e.preventDefault();
@@ -64,11 +85,74 @@ const Cart = () => {
             return;
         }
 
-        try {
-            setLoading(true);
+        setLoading(true);
 
-            const response = await fetch(
-                "http://localhost:5000/api/orders",
+        try {
+            // Step 1: Create the QuickMart order on the backend
+            const orderResponse = await fetch(`${API_URL}/orders`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    items: cartItems.map((item) => ({
+                        product: item._id,
+                        quantity: item.quantity,
+                    })),
+                    shippingAddress: address,
+                    paymentMethod,
+                }),
+            });
+
+            const orderData = await orderResponse.json();
+
+            if (!orderResponse.ok) {
+                if (orderResponse.status === 401) {
+                    localStorage.removeItem("token");
+                    localStorage.removeItem("user");
+                    navigate("/login");
+                    return;
+                }
+
+                throw new Error(
+                    orderData.message || "Unable to create order."
+                );
+            }
+
+            const order = orderData.order || orderData;
+            const quickmartOrderId = order._id;
+
+            if (!quickmartOrderId) {
+                throw new Error("The server did not return an order ID.");
+            }
+
+            // COD: no Razorpay payment required
+            if (paymentMethod === "COD") {
+                clearCart();
+
+                navigate(`/track-order/${quickmartOrderId}`, {
+                    state: {
+                        order,
+                        message: "Your order was placed successfully!",
+                    },
+                });
+
+                return;
+            }
+
+            // ONLINE: Load Razorpay Checkout
+            const scriptLoaded = await loadRazorpay();
+
+            if (!scriptLoaded) {
+                throw new Error(
+                    "Unable to load Razorpay Checkout. Check your internet connection."
+                );
+            }
+
+            // Step 2: Create a Razorpay order using the saved QuickMart order
+            const paymentOrderResponse = await fetch(
+                `${API_URL}/payments/create-order`,
                 {
                     method: "POST",
                     headers: {
@@ -76,54 +160,120 @@ const Cart = () => {
                         Authorization: `Bearer ${token}`,
                     },
                     body: JSON.stringify({
-                        items: cartItems.map((item) => ({
-                            product: item._id,
-                            quantity: item.quantity,
-                        })),
-                        shippingAddress: address,
-                        paymentMethod: "COD",
+                        orderId: quickmartOrderId,
                     }),
                 }
             );
 
-            const data = await response.json();
+            const paymentOrderData = await paymentOrderResponse.json();
 
-            if (!response.ok) {
-                if (response.status === 401) {
-                    localStorage.removeItem("token");
-                    localStorage.removeItem("user");
-                    navigate("/login");
-                    return;
-                }
-
-                throw new Error(data.message || "Unable to place order.");
+            if (!paymentOrderResponse.ok) {
+                throw new Error(
+                    paymentOrderData.message ||
+                    "Unable to start Razorpay payment."
+                );
             }
 
-            // Clear the cart only after the server confirms success.
-            clearCart();
+            // Step 3: Open Razorpay Checkout
+            const options = {
+                key: paymentOrderData.keyId,
+                amount: paymentOrderData.amount,
+                currency: paymentOrderData.currency || "INR",
+                name: "QuickMart",
+                description: "Grocery order payment",
+                order_id: paymentOrderData.razorpayOrderId,
 
-            const orderId = data.order?._id || data._id;
+                prefill: {
+                    name: address.name,
+                    contact: address.phone,
+                },
 
-            if (orderId) {
-                navigate(`/track-order/${orderId}`, {
-                    state: {
-                        order: data.order || data,
-                        message: "Your order was placed successfully!",
+                notes: {
+                    quickmartOrderId,
+                },
+
+                theme: {
+                    color: "#16a34a",
+                },
+
+                modal: {
+                    ondismiss: () => {
+                        setLoading(false);
+                        setError(
+                            "Payment was not completed. Your order may remain pending; you can retry payment."
+                        );
                     },
-                });
-            } else {
-                navigate("/orders", {
-                    state: {
-                        message: "Your order was placed successfully!",
-                    },
-                });
-            }
+                },
+
+                // Step 4: Verify the payment signature on the backend
+                handler: async (paymentResponse) => {
+                    try {
+                        const verifyResponse = await fetch(
+                            `${API_URL}/payments/verify`,
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    Authorization: `Bearer ${token}`,
+                                },
+                                body: JSON.stringify({
+                                    orderId: quickmartOrderId,
+                                    razorpay_order_id:
+                                        paymentResponse.razorpay_order_id,
+                                    razorpay_payment_id:
+                                        paymentResponse.razorpay_payment_id,
+                                    razorpay_signature:
+                                        paymentResponse.razorpay_signature,
+                                }),
+                            }
+                        );
+
+                        const verifyData = await verifyResponse.json();
+
+                        if (!verifyResponse.ok) {
+                            throw new Error(
+                                verifyData.message ||
+                                "Payment verification failed."
+                            );
+                        }
+
+                        clearCart();
+
+                        navigate(`/track-order/${quickmartOrderId}`, {
+                            state: {
+                                order: {
+                                    ...order,
+                                    paymentStatus: "Paid",
+                                },
+                                message: "Payment successful! Your order is confirmed.",
+                            },
+                        });
+                    } catch (verificationError) {
+                        setError(
+                            verificationError.message ||
+                            "Payment verification failed. Please contact support before retrying."
+                        );
+                    } finally {
+                        setLoading(false);
+                    }
+                },
+            };
+
+            const razorpay = new window.Razorpay(options);
+
+            razorpay.on("payment.failed", (response) => {
+                setError(
+                    response.error?.description ||
+                    "Payment failed. Please try again."
+                );
+                setLoading(false);
+            });
+
+            razorpay.open();
         } catch (err) {
             setError(
-                err.message ||
-                "Unable to place your order. Please try again."
+                err.message || "Unable to place your order. Please try again."
             );
-        } finally {
             setLoading(false);
         }
     };
@@ -133,9 +283,7 @@ const Cart = () => {
             <div className="mx-auto max-w-4xl px-4 py-16 text-center">
                 <div className="mb-4 text-6xl">🛒</div>
 
-                <h2 className="text-2xl font-bold">
-                    Your cart is empty
-                </h2>
+                <h2 className="text-2xl font-bold">Your cart is empty</h2>
 
                 <p className="mt-2 text-gray-500">
                     Add some fresh products to your cart.
@@ -154,9 +302,7 @@ const Cart = () => {
     return (
         <div className="mx-auto max-w-5xl px-4 py-10">
             <div className="mb-6 flex items-center justify-between">
-                <h1 className="text-3xl font-bold">
-                    Shopping Cart
-                </h1>
+                <h1 className="text-3xl font-bold">Shopping Cart</h1>
 
                 <button
                     type="button"
@@ -255,9 +401,7 @@ const Cart = () => {
 
                 {/* ORDER SUMMARY */}
                 <div className="h-fit rounded-xl bg-white p-6 shadow-sm">
-                    <h2 className="text-xl font-bold">
-                        Order Summary
-                    </h2>
+                    <h2 className="text-xl font-bold">Order Summary</h2>
 
                     <div className="mt-5 flex justify-between">
                         <span>
@@ -268,15 +412,15 @@ const Cart = () => {
                             )}
                             )
                         </span>
-
                         <span>₹{cartTotal}</span>
                     </div>
 
                     <div className="mt-3 flex justify-between">
                         <span>Delivery fee</span>
-
                         <span>
-                            {deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`}
+                            {deliveryFee === 0
+                                ? "FREE"
+                                : `₹${deliveryFee}`}
                         </span>
                     </div>
 
@@ -408,18 +552,49 @@ const Cart = () => {
                             />
                         </div>
 
+                        {/* PAYMENT METHOD */}
                         <div className="mt-6 rounded-lg bg-gray-50 p-4">
-                            <p className="font-semibold">
-                                Payment Method
-                            </p>
+                            <p className="font-semibold">Payment Method</p>
 
-                            <p className="mt-2 text-gray-700">
-                                💵 Cash on Delivery (COD)
-                            </p>
+                            <label className="mt-4 flex cursor-pointer items-center gap-3">
+                                <input
+                                    type="radio"
+                                    name="paymentMethod"
+                                    value="COD"
+                                    checked={paymentMethod === "COD"}
+                                    onChange={(e) =>
+                                        setPaymentMethod(e.target.value)
+                                    }
+                                />
+                                <span>💵 Cash on Delivery (COD)</span>
+                            </label>
 
-                            <p className="mt-3 text-lg font-bold">
+                            <label className="mt-4 flex cursor-pointer items-center gap-3">
+                                <input
+                                    type="radio"
+                                    name="paymentMethod"
+                                    value="ONLINE"
+                                    checked={paymentMethod === "ONLINE"}
+                                    onChange={(e) =>
+                                        setPaymentMethod(e.target.value)
+                                    }
+                                />
+                                <span>
+                                    💳 Pay Online using Razorpay (Test Mode)
+                                </span>
+                            </label>
+
+                            <p className="mt-4 text-lg font-bold">
                                 Order Total: ₹{grandTotal}
                             </p>
+
+                            {paymentMethod === "ONLINE" && (
+                                <p className="mt-2 text-sm text-gray-600">
+                                    Razorpay test checkout will open after you
+                                    place the order. No real payment should be
+                                    collected in test mode.
+                                </p>
+                            )}
                         </div>
 
                         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
@@ -429,8 +604,10 @@ const Cart = () => {
                                 className="flex-1 rounded-lg bg-green-600 px-5 py-3 font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {loading
-                                    ? "Placing Order..."
-                                    : `Place Order · ₹${grandTotal}`}
+                                    ? "Processing..."
+                                    : paymentMethod === "ONLINE"
+                                        ? `Pay ₹${grandTotal} with Razorpay`
+                                        : `Place Order · ₹${grandTotal}`}
                             </button>
 
                             <button
@@ -440,7 +617,7 @@ const Cart = () => {
                                     setError("");
                                 }}
                                 disabled={loading}
-                                className="rounded-lg border px-5 py-3 font-semibold"
+                                className="rounded-lg border px-5 py-3 font-semibold disabled:opacity-60"
                             >
                                 Cancel
                             </button>

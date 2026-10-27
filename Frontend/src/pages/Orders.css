@@ -1,0 +1,726 @@
+/* QuickMart - Customer My Orders Page */
+
+.qm-orders-page {
+    min-height: 100vh;
+    padding: 42px 24px 56px;
+    background: #f5f8f5;
+    color: #17352a;
+}
+
+.qm-orders-container {
+    width: min(1120px, 100%);
+    margin: 0 auto;
+}
+
+.qm-orders-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 30px;
+}
+
+.qm-eyebrow {
+    display: inline-block;
+    margin-bottom: 10px;
+    color: #128044;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+}
+
+.qm-orders-header h1 {
+    margin: 0;
+    color: #17352a;
+    font-size: clamp(30px, 4vw, 42px);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.12;
+}
+
+.qm-orders-header p {
+    margin: 10px 0 0;
+    color: #718078;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.qm-header-actions,
+.qm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Buttons */
+
+.qm-btn {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    border: 1px solid transparent;
+    border-radius: 11px;
+    padding: 11px 17px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 750;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        background 0.16s,
+        border-color 0.16s,
+        box-shadow 0.16s,
+        transform 0.16s;
+}
+
+.qm-btn:hover {
+    transform: translateY(-1px);
+}
+
+.qm-btn:focus-visible {
+    outline: 3px solid #16a34a45;
+    outline-offset: 3px;
+}
+
+.qm-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+    transform: none;
+}
+
+.qm-btn-primary {
+    color: #fff;
+    background: #119447;
+    box-shadow: 0 5px 12px #1194471f;
+}
+
+.qm-btn-primary:hover {
+    background: #0d7f3b;
+}
+
+.qm-btn-outline {
+    border-color: #d5e6d9;
+    color: #167742;
+    background: #fff;
+}
+
+.qm-btn-outline:hover {
+    border-color: #91c9a2;
+    background: #f0faf3;
+}
+
+.qm-btn-danger {
+    border-color: #f1d1ce;
+    color: #bd3e35;
+    background: #fff;
+}
+
+.qm-btn-danger:hover {
+    border-color: #e7aaa4;
+    background: #fff5f4;
+}
+
+/* Summary cards */
+
+.qm-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 36px;
+}
+
+.qm-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    min-height: 96px;
+    border: 1px solid #e5eee7;
+    border-radius: 16px;
+    padding: 20px;
+    background: #fff;
+    box-shadow: 0 4px 15px #17352a09;
+}
+
+.qm-stat-icon {
+    display: grid;
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    place-items: center;
+    border-radius: 14px;
+    color: #118342;
+    background: #e7f7eb;
+    font-size: 25px;
+    font-weight: 700;
+}
+
+.qm-stat-icon.warm {
+    color: #b66b16;
+    background: #fff1df;
+}
+
+.qm-stat-icon.blue {
+    color: #3268d6;
+    background: #e8efff;
+}
+
+.qm-stat-card div>span {
+    display: block;
+    color: #7c8981;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.qm-stat-card strong {
+    display: block;
+    margin-top: 5px;
+    color: #17352a;
+    font-size: 27px;
+    line-height: 1.1;
+}
+
+/* Order list heading */
+
+.qm-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 0 0 17px;
+}
+
+.qm-section-heading h2 {
+    margin: 0;
+    color: #17352a;
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+}
+
+.qm-section-heading p {
+    margin: 5px 0 0;
+    color: #7b8980;
+    font-size: 13px;
+}
+
+.qm-count {
+    border: 1px solid #d8eddf;
+    border-radius: 999px;
+    padding: 8px 12px;
+    color: #167742;
+    background: #eaf8ee;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.qm-orders-list {
+    display: grid;
+    gap: 18px;
+}
+
+/* Order cards */
+
+.qm-order-card {
+    overflow: hidden;
+    border: 1px solid #e1eae3;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 6px 22px #17352a0b;
+}
+
+.qm-order-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 22px;
+    padding: 22px 24px;
+    border-bottom: 1px solid #edf2ee;
+    background: linear-gradient(115deg, #fff, #fbfefb);
+}
+
+.qm-order-reference {
+    display: grid;
+    min-width: 0;
+    gap: 7px;
+}
+
+.qm-label {
+    display: block;
+    color: #7c8981;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+}
+
+.qm-order-reference>strong {
+    overflow-wrap: anywhere;
+    color: #203b2f;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.qm-order-date {
+    color: #7b8980;
+    font-size: 13px;
+}
+
+.qm-status-block {
+    display: grid;
+    justify-items: end;
+    gap: 9px;
+}
+
+/* Order status badges */
+
+.qm-status,
+.qm-payment {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    width: fit-content;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.qm-status i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.qm-status.delivered {
+    color: #13753a;
+    background: #e3f8e9;
+}
+
+.qm-status.cancelled {
+    color: #bd3933;
+    background: #fff0ef;
+}
+
+.qm-status.delivery {
+    color: #245cc7;
+    background: #eaf1ff;
+}
+
+.qm-status.progress {
+    color: #6541b7;
+    background: #f1eaff;
+}
+
+.qm-status.pending {
+    color: #9a650c;
+    background: #fff5d9;
+}
+
+/* Product items */
+
+.qm-items {
+    display: grid;
+    padding: 5px 24px;
+}
+
+.qm-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+    padding: 17px 0;
+}
+
+.qm-item+.qm-item {
+    border-top: 1px solid #f0f3f0;
+}
+
+.qm-item img {
+    width: 76px;
+    height: 76px;
+    flex: 0 0 76px;
+    border: 1px solid #e8eee9;
+    border-radius: 13px;
+    background: #f7faf7;
+    object-fit: cover;
+}
+
+.qm-item-info {
+    min-width: 0;
+    flex: 1;
+}
+
+.qm-item-info h3 {
+    margin: 0;
+    overflow-wrap: anywhere;
+    color: #203b2f;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.qm-item-info p {
+    margin: 6px 0 0;
+    color: #7b8980;
+    font-size: 13px;
+}
+
+.qm-item-info p span {
+    padding: 0 3px;
+    color: #a4afa7;
+}
+
+.qm-item-price {
+    color: #203b2f;
+    font-size: 15px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+/* Payment and total section */
+
+.qm-order-details {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(190px, 0.8fr);
+    gap: 24px;
+    border-top: 1px solid #edf2ee;
+    padding: 22px 24px;
+    background: #f9fbf9;
+}
+
+.qm-payment-details {
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    gap: 15px;
+}
+
+.qm-detail-group {
+    display: grid;
+    justify-items: start;
+    gap: 8px;
+}
+
+.qm-detail-group>strong {
+    color: #34483c;
+    font-size: 14px;
+    font-weight: 750;
+}
+
+.qm-payment.paid {
+    color: #13753a;
+    background: #dcfce7;
+}
+
+.qm-payment.failed {
+    color: #bd3933;
+    background: #fff0ef;
+}
+
+.qm-payment.refunded {
+    color: #7143b6;
+    background: #f2eaff;
+}
+
+.qm-payment.pending {
+    color: #9a650c;
+    background: #fff3d2;
+}
+
+.qm-cod-note {
+    max-width: 360px;
+    margin: -2px 0 0;
+    color: #7b8980;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.qm-total-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    text-align: right;
+}
+
+.qm-total-amount {
+    color: #17352a;
+    font-size: 27px;
+    font-weight: 850;
+    letter-spacing: -0.04em;
+}
+
+.qm-partner,
+.qm-delivered-date {
+    margin: 5px 0 0;
+    color: #718078;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.qm-partner strong {
+    color: #405448;
+    font-weight: 750;
+}
+
+/* Actions */
+
+.qm-order-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    border-top: 1px solid #edf2ee;
+    padding: 17px 24px;
+    background: #fff;
+}
+
+/* Empty, loading and error states */
+
+.qm-empty-state,
+.qm-state {
+    display: flex;
+    min-height: 300px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e1eae3;
+    border-radius: 18px;
+    padding: 32px 20px;
+    background: #fff;
+    text-align: center;
+    box-shadow: 0 6px 22px #17352a0a;
+}
+
+.qm-empty-icon {
+    display: grid;
+    width: 72px;
+    height: 72px;
+    place-items: center;
+    border-radius: 22px;
+    background: #eaf8ee;
+    font-size: 34px;
+}
+
+.qm-empty-state h2,
+.qm-state h1 {
+    margin: 18px 0 0;
+    color: #203b2f;
+    font-size: 23px;
+    font-weight: 800;
+}
+
+.qm-empty-state p,
+.qm-state p {
+    max-width: 420px;
+    margin: 8px 0 20px;
+    color: #7b8980;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.qm-state {
+    width: min(560px, 100%);
+    min-height: 260px;
+    margin: 8vh auto 0;
+    gap: 10px;
+}
+
+.qm-error-state {
+    border-color: #f2d9d6;
+}
+
+.qm-state-symbol {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    place-items: center;
+    border-radius: 50%;
+    color: #bd3933;
+    background: #fff0ef;
+    font-size: 25px;
+    font-weight: 900;
+}
+
+.qm-inline-error {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 20px;
+    border: 1px solid #f2d2cf;
+    border-radius: 12px;
+    padding: 12px 15px;
+    color: #b63832;
+    background: #fff4f3;
+    font-size: 13px;
+}
+
+.qm-muted {
+    color: #7b8980;
+    font-size: 13px;
+}
+
+.qm-footer {
+    margin-top: 25px;
+    color: #8b978f;
+    font-size: 12px;
+    line-height: 1.6;
+    text-align: center;
+}
+
+/* Loading animation */
+
+.qm-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #dcefe1;
+    border-top-color: #119447;
+    border-radius: 50%;
+    animation: qm-rotate 0.8s linear infinite;
+}
+
+.qm-refresh-icon.spinning {
+    display: inline-block;
+    animation: qm-rotate 0.8s linear infinite;
+}
+
+@keyframes qm-rotate {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive design */
+
+@media (max-width: 760px) {
+    .qm-orders-page {
+        padding: 28px 15px 40px;
+    }
+
+    .qm-orders-header {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .qm-header-actions {
+        width: 100%;
+    }
+
+    .qm-header-actions .qm-btn {
+        flex: 1;
+    }
+
+    .qm-stats {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-bottom: 28px;
+    }
+
+    .qm-stat-card {
+        min-height: 80px;
+        padding: 15px;
+    }
+
+    .qm-stat-icon {
+        width: 42px;
+        height: 42px;
+        flex-basis: 42px;
+    }
+
+    .qm-order-card-header {
+        flex-direction: column;
+        gap: 16px;
+        padding: 18px;
+    }
+
+    .qm-status-block {
+        justify-items: start;
+    }
+
+    .qm-items {
+        padding: 4px 18px;
+    }
+
+    .qm-item {
+        gap: 12px;
+    }
+
+    .qm-item img {
+        width: 62px;
+        height: 62px;
+        flex-basis: 62px;
+    }
+
+    .qm-order-details {
+        grid-template-columns: 1fr;
+        gap: 22px;
+        padding: 19px 18px;
+    }
+
+    .qm-total-details {
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    .qm-order-actions {
+        padding: 15px 18px;
+    }
+
+    .qm-order-actions .qm-btn {
+        flex: 1;
+    }
+}
+
+@media (max-width: 420px) {
+    .qm-header-actions {
+        flex-direction: column;
+    }
+
+    .qm-header-actions .qm-btn {
+        width: 100%;
+    }
+
+    .qm-item {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .qm-item-info {
+        padding-top: 4px;
+    }
+
+    .qm-item-price {
+        width: 100%;
+        padding-left: 74px;
+    }
+
+    .qm-order-actions {
+        flex-direction: column;
+    }
+
+    .qm-order-actions .qm-btn {
+        width: 100%;
+    }
+
+    .qm-section-heading {
+        align-items: flex-start;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .qm-btn,
+    .qm-spinner,
+    .qm-refresh-icon {
+        animation: none;
+        transition: none;
+    }
+
+    .qm-btn:hover {
+        transform: none;
+    }
+}

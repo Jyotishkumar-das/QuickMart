@@ -311,7 +311,101 @@ const getMyOrders = async (req, res) => {
         });
     }
 };
+// ======================================================
+// CANCEL ORDER - CUSTOMER
+// ======================================================
 
+const cancelOrder = async (req, res) => {
+    const session = await mongoose.startSession();
+
+    try {
+        const userId = req.user?.userId;
+        const { id } = req.params;
+
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid order ID",
+            });
+        }
+
+        session.startTransaction();
+
+        const order = await Order.findOne({
+            _id: id,
+            user: userId,
+        }).session(session);
+
+        if (!order) {
+            await session.abortTransaction();
+
+            return res.status(404).json({
+                success: false,
+                message: "Order not found",
+            });
+        }
+
+        // Only early-stage orders can be cancelled by customers.
+        if (!["Confirmed", "Preparing"].includes(order.orderStatus)) {
+            await session.abortTransaction();
+
+            return res.status(400).json({
+                success: false,
+                message: "This order can no longer be cancelled",
+            });
+        }
+
+        // Restore stock for every ordered item.
+        for (const item of order.items) {
+            const result = await Product.updateOne(
+                { _id: item.product },
+                { $inc: { stock: item.quantity } },
+                { session }
+            );
+
+            if (result.matchedCount !== 1) {
+                throw new Error(
+                    `Product not found while restoring stock: ${item.product}`
+                );
+            }
+        }
+
+        order.orderStatus = "Cancelled";
+        order.cancelledAt = new Date();
+
+        await order.save({ session });
+
+        // Release an assigned delivery partner, if any.
+        if (order.deliveryPartner) {
+            await DeliveryPartner.updateOne(
+                { _id: order.deliveryPartner },
+                { $set: { isAvailable: true } },
+                { session }
+            );
+        }
+
+        await session.commitTransaction();
+
+        return res.status(200).json({
+            success: true,
+            message: "Order cancelled successfully",
+            order,
+        });
+    } catch (error) {
+        if (session.inTransaction()) {
+            await session.abortTransaction();
+        }
+
+        console.error("Cancel Order Error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to cancel order",
+        });
+    } finally {
+        await session.endSession();
+    }
+};
 
 // ======================================================
 // GET SINGLE ORDER
@@ -446,23 +540,41 @@ const getAllOrders = async (req, res) => {
 // ======================================================
 // UPDATE ORDER STATUS - ADMIN
 // ======================================================
-
-
 const updateOrderStatus = async (req, res) => {
     try {
-        // 1. Only admins can update order status
-        if (req.user?.role !== "admin") {
-            return res.status(403).json({
+        // Frontend may send either "status" or "orderStatus".
+        const status = req.body.status || req.body.orderStatus;
+
+        if (!req.user?.role) {
+            return res.status(401).json({
                 success: false,
-                message: "Only admin can update order status",
+                message: "Authentication required",
             });
         }
 
-        const { status } = req.body;
+        const order = await Order.findById(req.params.id);
+        if (!["customer", "delivery", "admin"].includes(req.user?.role)) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not authorized to view this order",
+            });
+        }
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: "Order not found",
+            });
+        }
 
-        // 2. Validate requested status
+        const previousStatus = order.orderStatus;
+
+        const allowedTransitions = {
+            Confirmed: ["Preparing", "Cancelled"],
+            Preparing: ["Out for Delivery", "Cancelled"],
+            "Out for Delivery": ["Delivered", "Cancelled"],
+        };
+
         const allowedStatuses = [
-            "Confirmed",
             "Preparing",
             "Out for Delivery",
             "Delivered",
@@ -476,47 +588,62 @@ const updateOrderStatus = async (req, res) => {
             });
         }
 
-        // 3. Find the order
-        const order = await Order.findById(req.params.id);
+        // ADMIN: validate the status transition.
+        if (req.user.role === "admin") {
+            if (
+                !allowedTransitions[previousStatus] ||
+                !allowedTransitions[previousStatus].includes(status)
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Cannot change order status from ${previousStatus} to ${status}`,
+                });
+            }
+        }
 
-        if (!order) {
-            return res.status(404).json({
+        // DELIVERY PARTNER: only deliver an assigned order.
+        else if (req.user.role === "delivery") {
+            if (
+                status !== "Delivered" ||
+                previousStatus !== "Out for Delivery"
+            ) {
+                return res.status(403).json({
+                    success: false,
+                    message:
+                        "Delivery partners can only mark Out for Delivery orders as Delivered",
+                });
+            }
+
+            const deliveryPartner = await DeliveryPartner.findOne({
+                user: req.user.userId,
+                isActive: true,
+            });
+
+            if (!deliveryPartner) {
+                return res.status(403).json({
+                    success: false,
+                    message: "Delivery partner profile not found",
+                });
+            }
+
+            if (
+                !order.deliveryPartner ||
+                String(order.deliveryPartner) !==
+                String(deliveryPartner._id)
+            ) {
+                return res.status(403).json({
+                    success: false,
+                    message: "This order is not assigned to you",
+                });
+            }
+        } else {
+            return res.status(403).json({
                 success: false,
-                message: "Order not found",
+                message: "You do not have permission to update order status",
             });
         }
 
-        const previousStatus = order.orderStatus;
-
-        // 4. Prevent changes to terminal orders
-        if (
-            previousStatus === "Delivered" ||
-            previousStatus === "Cancelled"
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: `Cannot update an order that is already ${previousStatus}`,
-            });
-        }
-
-        // 5. Enforce valid status transitions
-        const allowedTransitions = {
-            Confirmed: ["Preparing", "Cancelled"],
-            Preparing: ["Out for Delivery", "Cancelled"],
-            "Out for Delivery": ["Delivered", "Cancelled"],
-        };
-
-        if (
-            !allowedTransitions[previousStatus] ||
-            !allowedTransitions[previousStatus].includes(status)
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: `Cannot change order status from ${previousStatus} to ${status}`,
-            });
-        }
-
-        // 6. Update order status
+        // Update order.
         order.orderStatus = status;
 
         if (status === "Delivered") {
@@ -529,20 +656,17 @@ const updateOrderStatus = async (req, res) => {
 
         await order.save();
 
-        // 7. Release delivery partner when delivery ends
+        // Release the delivery partner after completion/cancellation.
         if (
-            (status === "Delivered" || status === "Cancelled") &&
+            ["Delivered", "Cancelled"].includes(status) &&
             order.deliveryPartner
         ) {
             const partnerUpdate = {
-                isAvailable: true,
+                $set: { isAvailable: true },
             };
 
-            // Count this completed delivery once
             if (status === "Delivered") {
-                partnerUpdate.$inc = {
-                    totalDeliveries: 1,
-                };
+                partnerUpdate.$inc = { totalDeliveries: 1 };
             }
 
             await DeliveryPartner.findByIdAndUpdate(
@@ -551,7 +675,6 @@ const updateOrderStatus = async (req, res) => {
             );
         }
 
-        // 8. Return updated order
         const updatedOrder = await Order.findById(order._id)
             .populate("user", "name phone")
             .populate("items.product", "name image")
@@ -992,5 +1115,7 @@ module.exports = {
     getLiveDeliveryLocation,
 
     updatePaymentStatus,
+
+    cancelOrder,
 
 };

@@ -1,11 +1,10 @@
-
 const jwt = require("jsonwebtoken");
 
 const protect = (req, res, next) => {
     try {
-        // 1. Check Authorization header
         const authHeader = req.headers.authorization;
 
+        // Check Authorization header
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
             return res.status(401).json({
                 success: false,
@@ -13,7 +12,6 @@ const protect = (req, res, next) => {
             });
         }
 
-        // 2. Extract token
         const token = authHeader.split(" ")[1];
 
         if (!token) {
@@ -23,7 +21,7 @@ const protect = (req, res, next) => {
             });
         }
 
-        // 3. Check JWT secret configuration
+        // Check JWT secret
         if (!process.env.JWT_SECRET) {
             console.error("JWT_SECRET is not configured.");
 
@@ -33,13 +31,12 @@ const protect = (req, res, next) => {
             });
         }
 
-        // 4. Verify token
+        // Verify token
         const decoded = jwt.verify(
             token,
             process.env.JWT_SECRET
         );
 
-        // 5. Validate required user information
         if (!decoded.userId || !decoded.role) {
             return res.status(401).json({
                 success: false,
@@ -47,27 +44,23 @@ const protect = (req, res, next) => {
             });
         }
 
-        // 6. Attach authenticated user information
         req.user = {
             userId: decoded.userId,
             role: decoded.role,
         };
 
-        // 7. Continue to controller
         return next();
-
     } catch (error) {
-        if (error.name === "TokenExpiredError") {
+        if (
+            error.name === "TokenExpiredError" ||
+            error.name === "JsonWebTokenError"
+        ) {
             return res.status(401).json({
                 success: false,
-                message: "Token expired. Please login again.",
-            });
-        }
-
-        if (error.name === "JsonWebTokenError") {
-            return res.status(401).json({
-                success: false,
-                message: "Invalid token. Please login again.",
+                message:
+                    error.name === "TokenExpiredError"
+                        ? "Token expired. Please login again."
+                        : "Invalid token. Please login again.",
             });
         }
 

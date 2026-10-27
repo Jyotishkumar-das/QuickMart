@@ -1,3 +1,4 @@
+
 const express = require("express");
 
 const {
@@ -9,6 +10,7 @@ const {
     updatePaymentStatus,
     assignDeliveryPartner,
     getLiveDeliveryLocation,
+    cancelOrder,
 } = require("../controllers/orderController");
 
 const protect = require("../middleware/authMiddleware");
@@ -27,6 +29,12 @@ router.post("/", protect, createOrder);
 // GET /api/orders/my-orders
 // =============================================
 router.get("/my-orders", protect, getMyOrders);
+
+// =============================================
+// CUSTOMER: CANCEL ORDER
+// PUT /api/orders/:id/cancel
+// =============================================
+router.put("/:id/cancel", protect, cancelOrder);
 
 // =============================================
 // ADMIN: GET ALL ORDERS

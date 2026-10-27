@@ -1,3 +1,4 @@
+
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
@@ -26,17 +27,21 @@ app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/categories", require("./routes/categoryRoutes"));
 app.use("/api/products", require("./routes/productRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
+
 app.use(
   "/api/delivery-partners",
   require("./routes/deliveryPartnerRoutes")
 );
+
 app.use("/api/delivery", require("./routes/deliveryRoutes"));
+
+app.use("/api/payments", require("./routes/paymentRoutes"));
 
 // ================= TEST ROUTE =================
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
-    message: "QuickMart Backend is running 🚀",
+    message: "QuickMart Backend is running",
   });
 });
 
@@ -50,6 +55,9 @@ const io = new Server(server, {
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   },
 });
+
+// Allow controllers to access Socket.IO.
+app.set("io", io);
 
 // ================= SOCKET JWT AUTH =================
 io.use((socket, next) => {
@@ -66,22 +74,28 @@ io.use((socket, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    socket.user = decoded;
 
-    next();
+    if (!decoded.userId || !decoded.role) {
+      return next(new Error("Invalid token payload"));
+    }
+
+    socket.user = decoded;
+    return next();
   } catch (error) {
     console.error("Socket authentication failed:", error.message);
-    next(new Error("Invalid or expired token"));
+    return next(new Error("Invalid or expired token"));
   }
 });
 
 // ================= SOCKET CONNECTION =================
 io.on("connection", (socket) => {
-  console.log("Socket connected:", socket.id);
-  console.log("Authenticated user:", socket.user?.userId);
-  console.log("User role:", socket.user?.role);
+  const userId = String(socket.user.userId);
+  const role = socket.user.role;
 
-  // Register delivery tracking socket events
+  console.log("Socket connected:", socket.id);
+  console.log("Authenticated user:", userId);
+  console.log("User role:", role);
+
   registerTrackingSocket(io, socket);
 
   // ================= JOIN ORDER ROOM =================
@@ -93,8 +107,6 @@ io.on("connection", (socket) => {
           message: "Order ID is required",
         });
       }
-
-      const role = socket.user?.role;
 
       if (!["customer", "delivery", "admin"].includes(role)) {
         return socket.emit("orderRoomError", {
@@ -119,12 +131,9 @@ io.on("connection", (socket) => {
         });
       }
 
-      // Customer can access only their own order
+      // Customers can track only their own orders.
       if (role === "customer") {
-        if (
-          !order.user ||
-          order.user.toString() !== String(socket.user.userId)
-        ) {
+        if (!order.user || String(order.user) !== userId) {
           return socket.emit("orderRoomError", {
             success: false,
             message: "You are not authorized to track this order",
@@ -132,14 +141,14 @@ io.on("connection", (socket) => {
         }
       }
 
-      // Delivery partner can access only assigned orders
+      // Delivery partners can track only assigned orders.
       if (role === "delivery") {
-        const deliveryPartner = await DeliveryPartner.findOne({
-          user: socket.user.userId,
+        const partner = await DeliveryPartner.findOne({
+          user: userId,
           isActive: true,
-        });
+        }).select("_id");
 
-        if (!deliveryPartner) {
+        if (!partner) {
           return socket.emit("orderRoomError", {
             success: false,
             message: "Delivery partner profile not found",
@@ -148,8 +157,7 @@ io.on("connection", (socket) => {
 
         if (
           !order.deliveryPartner ||
-          order.deliveryPartner.toString() !==
-            deliveryPartner._id.toString()
+          String(order.deliveryPartner) !== String(partner._id)
         ) {
           return socket.emit("orderRoomError", {
             success: false,
@@ -158,16 +166,13 @@ io.on("connection", (socket) => {
         }
       }
 
-      // Admin can access any existing order
-      const roomName = `order_${ orderId } `;
+      const roomName = `order_${orderId}`;
 
       await socket.join(roomName);
 
-      console.log(
-        `User ${ socket.user.userId } joined room: ${ roomName } `
-      );
+      console.log(`${userId} joined room ${roomName}`);
 
-      socket.emit("joinedOrderRoom", {
+      return socket.emit("joinedOrderRoom", {
         success: true,
         orderId: String(orderId),
         room: roomName,
@@ -176,7 +181,7 @@ io.on("connection", (socket) => {
     } catch (error) {
       console.error("Join order room error:", error.message);
 
-      socket.emit("orderRoomError", {
+      return socket.emit("orderRoomError", {
         success: false,
         message: "Failed to join order tracking room",
       });
@@ -185,25 +190,31 @@ io.on("connection", (socket) => {
 
   // ================= LEAVE ORDER ROOM =================
   socket.on("leaveOrderRoom", async (orderId) => {
-    if (!orderId) {
+    try {
+      if (!orderId || !/^[a-f\d]{24}$/i.test(String(orderId))) {
+        return socket.emit("orderRoomError", {
+          success: false,
+          message: "Invalid order ID",
+        });
+      }
+
+      const roomName = `order_${orderId}`;
+      await socket.leave(roomName);
+
+      return socket.emit("leftOrderRoom", {
+        success: true,
+        orderId: String(orderId),
+        room: roomName,
+        message: "Left order tracking room",
+      });
+    } catch (error) {
+      console.error("Leave order room error:", error.message);
+
       return socket.emit("orderRoomError", {
         success: false,
-        message: "Order ID is required",
+        message: "Failed to leave order tracking room",
       });
     }
-
-    const roomName = `order_${ orderId } `;
-
-    await socket.leave(roomName);
-
-    console.log(`Socket ${ socket.id } left room: ${ roomName } `);
-
-    socket.emit("leftOrderRoom", {
-      success: true,
-      orderId: String(orderId),
-      room: roomName,
-      message: "Left order tracking room",
-    });
   });
 
   // ================= DISCONNECT =================
@@ -221,6 +232,6 @@ server.on("error", (error) => {
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
-  console.log(`QuickMart server running on port ${ PORT } 🚀`);
-  console.log(`Socket.IO server running on port ${ PORT } 📡`);
+  console.log(`QuickMart server running on port ${PORT}`);
+  console.log(`Socket.IO server running on port ${PORT}`);
 });

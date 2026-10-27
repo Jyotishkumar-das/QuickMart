@@ -4,13 +4,13 @@ const userSchema = new mongoose.Schema(
     {
         name: {
             type: String,
-            required: true,
+            required: [true, "Name is required"],
             trim: true,
         },
 
         phone: {
             type: String,
-            required: true,
+            required: [true, "Phone number is required"],
             unique: true,
             trim: true,
         },
@@ -19,6 +19,8 @@ const userSchema = new mongoose.Schema(
             type: String,
             enum: ["customer", "admin", "delivery"],
             default: "customer",
+            lowercase: true,
+            trim: true,
         },
 
         isActive: {
