@@ -4,7 +4,7 @@ import axios from "axios";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import "./OrderDetails.css";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://quickmart-api-b27r.onrender.com/api";
 
 const money = (value) =>
     `₹${Number(value ?? 0).toLocaleString("en-IN", {

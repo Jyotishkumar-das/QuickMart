@@ -15,7 +15,7 @@ import AdminCategories from "./pages/admin/Categories";
 import DeliveryPartners from "./pages/admin/DeliveryPartners";
 import { logout } from "./utils/auth";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://quickmart-api-b27r.onrender.com/api";
 
 const categoryImages = {
   "Fruits & Vegetables":
@@ -220,8 +220,8 @@ const Home = () => {
             <button
               onClick={() => handleCategoryClick("all")}
               className={`shrink-0 font-semibold ${selectedCategory === "all"
-                  ? "text-green-700"
-                  : "text-gray-600 hover:text-green-700"
+                ? "text-green-700"
+                : "text-gray-600 hover:text-green-700"
                 }`}
             >
               All Products
@@ -232,8 +232,8 @@ const Home = () => {
                 key={category._id}
                 onClick={() => handleCategoryClick(category._id)}
                 className={`shrink-0 font-medium transition ${selectedCategory === category._id
-                    ? "text-green-700"
-                    : "text-gray-600 hover:text-green-700"
+                  ? "text-green-700"
+                  : "text-gray-600 hover:text-green-700"
                   }`}
               >
                 {category.name}

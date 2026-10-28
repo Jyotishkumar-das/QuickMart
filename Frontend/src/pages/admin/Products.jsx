@@ -4,7 +4,7 @@ import axios from "axios";
 import { Link } from "react-router-dom";
 import "./Products.css";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://quickmart-api-b27r.onrender.com/api";
 
 const Products = () => {
     const [products, setProducts] = useState([]);
@@ -386,8 +386,8 @@ const Products = () => {
                                                 <td>
                                                     <span
                                                         className={`products-status ${product.isActive
-                                                                ? "products-status-active"
-                                                                : "products-status-inactive"
+                                                            ? "products-status-active"
+                                                            : "products-status-inactive"
                                                             }`}
                                                     >
                                                         <span />
@@ -398,8 +398,8 @@ const Products = () => {
                                                 <td>
                                                     <button
                                                         className={`products-toggle-btn ${product.isActive
-                                                                ? "products-deactivate-btn"
-                                                                : "products-activate-btn"
+                                                            ? "products-deactivate-btn"
+                                                            : "products-activate-btn"
                                                             }`}
                                                         onClick={() => toggleProduct(product)}
                                                         disabled={updatingId === product._id}

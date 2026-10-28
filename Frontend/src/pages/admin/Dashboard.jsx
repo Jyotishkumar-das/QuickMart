@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { logout } from "../../utils/auth";
 import "./Dashboard.css";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://quickmart-api-b27r.onrender.com/api";
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -416,8 +416,8 @@ const Dashboard = () => {
                                             <td>
                                                 <span
                                                     className={`admin-payment-badge ${order.paymentStatus === "Paid"
-                                                            ? "payment-success"
-                                                            : "payment-pending"
+                                                        ? "payment-success"
+                                                        : "payment-pending"
                                                         }`}
                                                 >
                                                     {order.paymentStatus || "Pending"}

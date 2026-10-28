@@ -5,8 +5,8 @@ import { io } from "socket.io-client";
 import { useParams, Link } from "react-router-dom";
 import "./TrackOrder.css";
 
-const API_URL = "http://localhost:5000/api";
-const SOCKET_URL = "http://localhost:5000";
+const API_URL = "https://quickmart-api-b27r.onrender.com/api";
+const SOCKET_URL = "https://quickmart-api-b27r.onrender.com";
 
 const TrackOrder = () => {
     const { id: orderId } = useParams();
@@ -195,8 +195,8 @@ const TrackOrder = () => {
 
                     <div
                         className={`track-connection ${connectionIsActive
-                                ? "track-connection-live"
-                                : "track-connection-waiting"
+                            ? "track-connection-live"
+                            : "track-connection-waiting"
                             }`}
                     >
                         <span className="track-connection-dot" />

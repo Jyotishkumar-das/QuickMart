@@ -4,7 +4,7 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import "./Orders.css";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://quickmart-api-b27r.onrender.com/api";
 
 const orderStatusClass = (status = "") => {
     switch (status.toLowerCase()) {

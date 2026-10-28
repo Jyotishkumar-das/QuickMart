@@ -4,7 +4,7 @@ import axios from "axios";
 import { Link } from "react-router-dom";
 import "./Orders.css";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://quickmart-api-b27r.onrender.com/api";
 
 const STATUS_OPTIONS = [
     "Confirmed",
@@ -105,7 +105,7 @@ const Orders = () => {
         } catch (err) {
             setError(
                 err.response?.data?.message ||
-                    "Failed to load delivery partners. Check admin permissions."
+                "Failed to load delivery partners. Check admin permissions."
             );
         } finally {
             setPartnersLoading(false);
@@ -134,7 +134,7 @@ const Orders = () => {
         } catch (err) {
             setError(
                 err.response?.data?.message ||
-                    "Failed to update order status."
+                "Failed to update order status."
             );
         } finally {
             setUpdatingId("");
@@ -166,7 +166,7 @@ const Orders = () => {
         } catch (err) {
             setError(
                 err.response?.data?.message ||
-                    "Failed to assign delivery partner. Check partner availability."
+                "Failed to assign delivery partner. Check partner availability."
             );
         } finally {
             setAssigningId("");
@@ -432,18 +432,18 @@ const Orders = () => {
                             {(search ||
                                 statusFilter !== "All" ||
                                 paymentFilter !== "All") && (
-                                <button
-                                    type="button"
-                                    className="orders-btn orders-btn-light"
-                                    onClick={() => {
-                                        setSearch("");
-                                        setStatusFilter("All");
-                                        setPaymentFilter("All");
-                                    }}
-                                >
-                                    Clear filters
-                                </button>
-                            )}
+                                    <button
+                                        type="button"
+                                        className="orders-btn orders-btn-light"
+                                        onClick={() => {
+                                            setSearch("");
+                                            setStatusFilter("All");
+                                            setPaymentFilter("All");
+                                        }}
+                                    >
+                                        Clear filters
+                                    </button>
+                                )}
                         </div>
                     ) : (
                         <div className="orders-cards">
@@ -474,10 +474,10 @@ const Orders = () => {
                                                 <p>
                                                     {order.createdAt
                                                         ? new Date(
-                                                              order.createdAt
-                                                          ).toLocaleString(
-                                                              "en-IN"
-                                                          )
+                                                            order.createdAt
+                                                        ).toLocaleString(
+                                                            "en-IN"
+                                                        )
                                                         : "Date unavailable"}
                                                 </p>
                                             </div>
@@ -546,12 +546,11 @@ const Orders = () => {
                                                             "N/A"}
                                                     </strong>
                                                     <span
-                                                        className={`orders-payment-badge ${
-                                                            order.paymentStatus ===
-                                                            "Paid"
+                                                        className={`orders-payment-badge ${order.paymentStatus ===
+                                                                "Paid"
                                                                 ? "paid"
                                                                 : "pending"
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {order.paymentStatus ||
                                                             "Pending"}
@@ -589,14 +588,14 @@ const Orders = () => {
                                                                 <strong>
                                                                     {formatCurrency(
                                                                         item.subtotal ??
-                                                                            Number(
-                                                                                item.price ||
-                                                                                    0
-                                                                            ) *
-                                                                                Number(
-                                                                                    item.quantity ||
-                                                                                        0
-                                                                                )
+                                                                        Number(
+                                                                            item.price ||
+                                                                            0
+                                                                        ) *
+                                                                        Number(
+                                                                            item.quantity ||
+                                                                            0
+                                                                        )
                                                                     )}
                                                                 </strong>
                                                             </li>
@@ -679,8 +678,8 @@ const Orders = () => {
                                                     {order.deliveryPartner?.name
                                                         ? `Assigned to ${order.deliveryPartner.name}`
                                                         : assignedPartnerId
-                                                          ? "A delivery partner is assigned."
-                                                          : "No delivery partner assigned yet."}
+                                                            ? "A delivery partner is assigned."
+                                                            : "No delivery partner assigned yet."}
                                                 </p>
 
                                                 {!isFinished ? (
@@ -696,7 +695,7 @@ const Orders = () => {
                                                             id={`partner-${orderId}`}
                                                             value={
                                                                 selectedPartners[
-                                                                    orderId
+                                                                orderId
                                                                 ] || ""
                                                             }
                                                             onChange={(
@@ -753,10 +752,10 @@ const Orders = () => {
                                                             className="orders-btn orders-btn-primary orders-assign-button"
                                                             disabled={
                                                                 assigningId ===
-                                                                    orderId ||
+                                                                orderId ||
                                                                 partnersLoading ||
                                                                 !selectedPartners[
-                                                                    orderId
+                                                                orderId
                                                                 ]
                                                             }
                                                             onClick={() =>
@@ -766,11 +765,11 @@ const Orders = () => {
                                                             }
                                                         >
                                                             {assigningId ===
-                                                            orderId
+                                                                orderId
                                                                 ? "Assigning..."
                                                                 : assignedPartnerId
-                                                                  ? "Reassign Partner"
-                                                                  : "Assign Partner"}
+                                                                    ? "Reassign Partner"
+                                                                    : "Assign Partner"}
                                                         </button>
                                                     </>
                                                 ) : (
@@ -783,7 +782,7 @@ const Orders = () => {
 
                                                 {!partnersLoading &&
                                                     deliveryPartners.length ===
-                                                        0 && (
+                                                    0 && (
                                                         <p className="orders-no-partners">
                                                             No active delivery
                                                             partners found.

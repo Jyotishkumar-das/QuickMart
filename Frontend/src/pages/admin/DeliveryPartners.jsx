@@ -4,7 +4,7 @@ import axios from "axios";
 import { Link } from "react-router-dom";
 import "./DeliveryPartners.css";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://quickmart-api-b27r.onrender.com/api";
 
 const DeliveryPartners = () => {
     const [partners, setPartners] = useState([]);
@@ -336,8 +336,8 @@ const DeliveryPartners = () => {
 
                                             <span
                                                 className={`delivery-status ${partner.isActive
-                                                        ? "delivery-status-active"
-                                                        : "delivery-status-inactive"
+                                                    ? "delivery-status-active"
+                                                    : "delivery-status-inactive"
                                                     }`}
                                             >
                                                 <span />
@@ -383,8 +383,8 @@ const DeliveryPartners = () => {
                                             <span>Current availability</span>
                                             <span
                                                 className={`delivery-availability ${isAvailable
-                                                        ? "delivery-availability-on"
-                                                        : "delivery-availability-off"
+                                                    ? "delivery-availability-on"
+                                                    : "delivery-availability-off"
                                                     }`}
                                             >
                                                 <span />
@@ -415,8 +415,8 @@ const DeliveryPartners = () => {
                                             <button
                                                 type="button"
                                                 className={`delivery-activation-btn ${partner.isActive
-                                                        ? "delivery-deactivate-btn"
-                                                        : "delivery-activate-btn"
+                                                    ? "delivery-deactivate-btn"
+                                                    : "delivery-activate-btn"
                                                     }`}
                                                 disabled={Boolean(updatingId)}
                                                 onClick={() => handleActivation(partner)}

@@ -6,8 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { logout } from "../utils/auth";
 import "./DeliveryDashboard.css";
 
-const API = "http://localhost:5000/api";
-const SOCKET_URL = "http://localhost:5000";
+const API = "https://quickmart-api-b27r.onrender.com/api";
+const SOCKET_URL = "https://quickmart-api-b27r.onrender.com";
 
 const DeliveryDashboard = () => {
     const navigate = useNavigate();
@@ -59,7 +59,7 @@ const DeliveryDashboard = () => {
         } catch (err) {
             setError(
                 err.response?.data?.message ||
-                    "Unable to load assigned orders."
+                "Unable to load assigned orders."
             );
         } finally {
             setLoading(false);
@@ -143,12 +143,12 @@ const DeliveryDashboard = () => {
 
             setMessage(
                 response.data?.message ||
-                    "Delivery location saved successfully."
+                "Delivery location saved successfully."
             );
         } catch (err) {
             setError(
                 err.response?.data?.message ||
-                    "Location update failed. Check the delivery API."
+                "Location update failed. Check the delivery API."
             );
         } finally {
             setUpdatingLocation(false);
@@ -180,7 +180,7 @@ const DeliveryDashboard = () => {
         } catch (err) {
             setError(
                 err.response?.data?.message ||
-                    "Status update failed. Check backend status rules."
+                "Status update failed. Check backend status rules."
             );
         } finally {
             setUpdatingOrder("");
@@ -219,7 +219,7 @@ const DeliveryDashboard = () => {
         } catch (err) {
             setError(
                 err.response?.data?.message ||
-                    "Unable to confirm COD payment."
+                "Unable to confirm COD payment."
             );
         } finally {
             setUpdatingOrder("");
